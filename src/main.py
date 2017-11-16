@@ -19,10 +19,9 @@ create a real-world server with HTTPS (possibly use flask-talisman too).
 
 app = flask.Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/generate', methods=['POST'])
 def handle_doli_json():
     do_contents = flask.request.json
-    # how not to hardcode this path?
     outpath = os.path.join("/home/doli/", do_contents["date"])
     json_out = outpath + ".json"
     doli.save_json(do_contents, json_out)
@@ -30,15 +29,18 @@ def handle_doli_json():
     itworked = doli.make_doli_and_pdf(do_contents, outpath) # because .pdf is added automatically by PyLaTeX
     pdf_out = outpath + ".pdf"
     pdfmime = "application/pdf"
-    return flask.send_file(pdf_out, mimetype=pdfmime)
+    response = flask.make_response(flask.send_from_directory('', pdf_out, mimetype=pdfmime))
+    response.headers["Content-Disposition"] = "inline;  filename=test.pdf"
+    response.headers['Access-Control-Allow-Origin'] = flask.request.headers.get('Origin')
+    return response
 
-def gcloud_save_file(local_filepath, cloud_basename, mimetype):
-    client = storage.Client()
-    bucket = client.get_bucket("big-data-fgv-regional")
-    cloud_filepath = os.path.join("raw-data/diário-oficial/br-rj-mesquita/", cloud_basename)
-    blob = bucket.blob(cloud_filepath)
-    blob.upload_from_filename(local_filepath, content_type=mimetype)
-    return None
+def gcloud_save_file(filename, mimetype):
+        client = storage.Client()
+        bucket = client.get_bucket("big-data-fgv-regional")
+        filepath = os.path.join("raw-data/diário-oficial/br-rj-mesquita/", filename)
+        blob = bucket.blob(filepath)
+        blob.upload_from_filename(filepath, content_type=mimetype)
+        return os.path.isfile(filepath)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="localhost", port=8888, debug=True)
