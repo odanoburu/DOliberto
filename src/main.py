@@ -34,13 +34,13 @@ def handle_doli_json():
     response.headers['Access-Control-Allow-Origin'] = flask.request.headers.get('Origin')
     return response
 
-def gcloud_save_file(filename, mimetype):
-        client = storage.Client()
-        bucket = client.get_bucket("big-data-fgv-regional")
-        filepath = os.path.join("raw-data/diário-oficial/br-rj-mesquita/", filename)
-        blob = bucket.blob(filepath)
-        blob.upload_from_filename(filepath, content_type=mimetype)
-        return os.path.isfile(filepath)
+def gcloud_save_file(local_filepath, cloud_basename, mimetype):
+    client = storage.Client()
+    bucket = client.get_bucket("big-data-fgv-regional")
+    cloud_filepath = os.path.join("raw-data/diário-oficial/br-rj-mesquita/", cloud_basename)
+    blob = bucket.blob(cloud_filepath)
+    blob.upload_from_filename(local_filepath, content_type=mimetype)
+    return None
 
 if __name__ == "__main__":
     app.run(host="localhost", port=8888, debug=True)
