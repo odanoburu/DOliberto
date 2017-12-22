@@ -26,6 +26,7 @@
 \RequirePackage{titletoc}
 \RequirePackage{geometry}
 \RequirePackage[citecolor=black,pagebackref,breaklinks=true,plainpages=false]{hyperref} % to make links
+\RequirePackage{tabu}
 % \RequirePackage[skins]{tcolorbox}
 
 

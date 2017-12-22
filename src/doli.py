@@ -1,11 +1,14 @@
-import os
+from collections import defaultdict
+import csv
 import datetime
 import json
-from collections import defaultdict
+import os
+
+from pylatex import Document, Command
 from pylatex.base_classes import Environment, Arguments
 from pylatex.package import Package
-from pylatex import Document, Command
-from pylatex.utils import NoEscape
+from pylatex.table import Tabu
+from pylatex.utils import NoEscape, bold
 
 """
 
@@ -121,7 +124,28 @@ def make_atos(dolidoc, ordered_atos):
             for ato in atos:
                 dolidoc.append(Command("headline", arguments=ato["title"]))
                 dolidoc.append(ato["text"])
+                if ato["csv"] is not None:
+                    dolidoc = make_table(dolidoc, ato["csv"])
                 dolidoc.append(Command("byline", arguments=[ato["author"], ato["role"]]))
+    return dolidoc
+
+def read_csv(data, dialect="unix", newline='\n'):
+    data = data.split(newline)
+    return csv.reader(data, dialect=dialect)
+
+def make_tablespec(csvreader, col_fmt="X[l]"):
+    for row in csvreader:
+        tablespec = ' '.join([col_fmt] * len(row))
+        return (row, tablespec)
+
+def make_table(dolidoc, data):
+    csvreader = read_csv(data)
+    header, tablespec = make_tablespec(csvreader)
+    with dolidoc.create(Tabu(tablespec)) as dolitable:
+        dolitable.add_row(header, mapper=[bold])
+        dolitable.add_hline()
+        for row in csvreader:
+            dolitable.add_row(row)
     return dolidoc
 
 def make_doli_tex(dolidoc, do_contents):
@@ -173,6 +197,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="This utility is part of the DOliberto project (see github.com/DOliberto/DOliberto.")
     subparsers = parser.add_subparsers(title="subcommands", help="sub-command help")
+    
     # make
     description_help = "turns a .json document in the appropriate format into a .pdf or .tex file."
     parser_mk = subparsers.add_parser("make", description=description_help, help=description_help, aliases=["mk"])
@@ -181,11 +206,13 @@ if __name__ == "__main__":
     parser_mk.add_argument("-t", "--tex", action="store_true",
                         help="output only the .tex file.")
     parser_mk.set_defaults(func=lambda x: read_json_and_make_doli(x.path, x.tex))
+    
     # validate
     parser_val = subparsers.add_parser("validate", description="validates atos order in .json document with DO contents. atos order is correct if all atos from the same secretaria are adjacent.", help="validate atos order in .json document with DO contents.", aliases=['val'])
     parser_val.add_argument("path", type=str,
                         help="path to .json file with DO contents.")
     parser_val.set_defaults(func=lambda x: read_and_validate_doli_order(x.path))
+    
     # parse args
     args = parser.parse_args()
     args.func(args)
