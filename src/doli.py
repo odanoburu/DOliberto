@@ -138,14 +138,23 @@ def make_tablespec(csvreader, col_fmt="X[l]"):
         tablespec = ' '.join([col_fmt] * len(row))
         return (row, tablespec)
 
+def make_newline(dolidoc):
+    dolidoc.append(Command("hfill"))
+    dolidoc.append(Command("break"))
+    return dolidoc
+
 def make_table(dolidoc, data):
     csvreader = read_csv(data)
     header, tablespec = make_tablespec(csvreader)
-    with dolidoc.create(Tabu(tablespec)) as dolitable:
+    dolidoc = make_newline(dolidoc)
+    with dolidoc.create(Tabu(tablespec, to=NoEscape(r"0.9\columnwidth"))) as dolitable:
+        dolitable.add_hline()
         dolitable.add_row(header, mapper=[bold])
         dolitable.add_hline()
         for row in csvreader:
             dolitable.add_row(row)
+        dolitable.add_hline()
+    dolidoc = make_newline(dolidoc)
     return dolidoc
 
 def make_doli_tex(dolidoc, do_contents):
